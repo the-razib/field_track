@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:dio/dio.dart';
 
-import 'package:field_track/core/error/exceptions.dart';
+import 'package:field_track/core/error/error_mapper.dart';
 import 'package:field_track/core/error/failures.dart';
 import 'package:field_track/core/network/connectivity_service.dart';
 import 'package:field_track/features/auth/domain/entities/auth_token.dart';
@@ -38,15 +37,8 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       await localDataSource.saveTokens(tokenModel);
       return Right(tokenModel);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(
-        message: e.message,
-        statusCode: e.statusCode,
-      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 
@@ -68,15 +60,8 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       await localDataSource.saveTokens(tokenModel);
       return Right(tokenModel);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(
-        message: e.message,
-        statusCode: e.statusCode,
-      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 
@@ -109,50 +94,13 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = await remoteDataSource.getCurrentUser();
       return Right(user);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(
-        message: e.message,
-        statusCode: e.statusCode,
-      ));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 
   @override
   Future<bool> isAuthenticated() async {
     return localDataSource.hasTokens();
-  }
-
-  Failure _handleDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.receiveTimeout ||
-        e.type == DioExceptionType.sendTimeout) {
-      return const NetworkFailure(
-        message: 'Connection timed out. Please try again.',
-      );
-    }
-
-    if (e.type == DioExceptionType.connectionError) {
-      return const NetworkFailure();
-    }
-
-    final statusCode = e.response?.statusCode;
-    final data = e.response?.data;
-    String message = 'Something went wrong. Please try again.';
-
-    if (data is Map<String, dynamic>) {
-      message = data['message'] as String? ??
-          data['error'] as String? ??
-          message;
-    }
-
-    if (statusCode == 401) {
-      return AuthFailure(message: message, statusCode: statusCode);
-    }
-
-    return ServerFailure(message: message, statusCode: statusCode);
   }
 }

@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:dio/dio.dart';
+
+import 'package:field_track/core/error/error_mapper.dart';
 import 'package:field_track/core/error/failures.dart';
 import 'package:field_track/core/network/connectivity_service.dart';
 import 'package:field_track/features/todos/domain/entities/todo.dart';
@@ -26,15 +27,12 @@ class TodoRepositoryImpl implements TodoRepository {
       try {
         final remoteTodos = await remoteDataSource.getTodos();
         await localDataSource.cacheTodos(remoteTodos);
-        
+
         // Return latest merge
         final mergedTodos = await localDataSource.getCachedTodos();
         return Right(mergedTodos);
-      } on DioException catch (_) {
-        // Fallback to cache on api failure
-        final cachedTodos = await localDataSource.getCachedTodos();
-        return Right(cachedTodos);
       } catch (_) {
+        // Fallback to cache on api failure
         final cachedTodos = await localDataSource.getCachedTodos();
         return Right(cachedTodos);
       }
@@ -47,10 +45,10 @@ class TodoRepositoryImpl implements TodoRepository {
   @override
   Future<Either<Failure, Todo>> toggleTodo(String id, bool isCompleted) async {
     final updatedAt = DateTime.now().toUtc().toIso8601String();
-    
+
     // Optimistically update cache and add pending change
     await localDataSource.updateCachedTodo(id, isCompleted, updatedAt);
-    
+
     final change = PendingChangeModel(
       todoId: id,
       isCompleted: isCompleted,
@@ -63,14 +61,14 @@ class TodoRepositoryImpl implements TodoRepository {
       try {
         // Attempt immediate sync
         final updatedTodo = await remoteDataSource.patchTodo(id, isCompleted, updatedAt);
-        
+
         // Remove from pending on success
         final pending = await localDataSource.getPendingChanges();
         final match = pending.firstWhere((element) => element.todoId == id);
         if (match.id != null) {
           await localDataSource.deletePendingChanges([match.id!]);
         }
-        
+
         await localDataSource.updateCachedTodo(id, isCompleted, updatedAt);
         return Right(updatedTodo.copyWith(isPendingSync: false));
       } catch (_) {
@@ -110,19 +108,16 @@ class TodoRepositoryImpl implements TodoRepository {
       await localDataSource.cacheTodos(remoteTodos);
 
       return const Right(null);
-    } on DioException catch (e) {
+    } catch (e) {
       // Revert status on failure
       final pending = await localDataSource.getPendingChanges();
-      final pendingIds = pending.where((e) => e.syncStatus == 'syncing').map((e) => e.id!).toList();
-      await localDataSource.updatePendingChangesStatus(pendingIds, 'failed');
-      
-      return Left(ServerFailure(message: e.toString()));
-    } catch (e) {
-      final pending = await localDataSource.getPendingChanges();
-      final pendingIds = pending.where((e) => e.syncStatus == 'syncing').map((e) => e.id!).toList();
+      final pendingIds = pending
+          .where((element) => element.syncStatus == 'syncing')
+          .map((e) => e.id!)
+          .toList();
       await localDataSource.updatePendingChangesStatus(pendingIds, 'failed');
 
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 }

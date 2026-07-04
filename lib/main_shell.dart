@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:field_track/app/theme/app_colors.dart';
+import 'package:field_track/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:field_track/features/auth/presentation/bloc/auth_state.dart';
 
 class MainShell extends StatelessWidget {
   final Widget child;
@@ -37,8 +40,14 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      body: child,
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) => current is AuthUnauthenticated,
+      listener: (context, state) {
+        
+        context.go('/login');
+      },
+      child: Scaffold(
+        body: child,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           border: Border(
@@ -70,6 +79,7 @@ class MainShell extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

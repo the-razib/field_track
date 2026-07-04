@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
-import 'package:dio/dio.dart';
 
-import 'package:field_track/core/error/exceptions.dart';
+import 'package:field_track/core/error/error_mapper.dart';
 import 'package:field_track/core/error/failures.dart';
 import 'package:field_track/core/network/connectivity_service.dart';
 import 'package:field_track/features/locations/domain/entities/location.dart';
@@ -25,12 +24,8 @@ class LocationRepositoryImpl implements LocationRepository {
     try {
       final locations = await remoteDataSource.getLocations();
       return Right(locations);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 
@@ -53,12 +48,8 @@ class LocationRepositoryImpl implements LocationRepository {
         'radius_m': radiusM,
       });
       return Right(location);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 
@@ -83,12 +74,8 @@ class LocationRepositoryImpl implements LocationRepository {
         'is_active': isActive,
       });
       return Right(location);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
   }
 
@@ -100,26 +87,8 @@ class LocationRepositoryImpl implements LocationRepository {
     try {
       await remoteDataSource.deleteLocation(id);
       return const Right(null);
-    } on DioException catch (e) {
-      return Left(_handleDioError(e));
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(UnexpectedFailure(message: e.toString()));
+      return Left(mapErrorToFailure(e));
     }
-  }
-
-  Failure _handleDioError(DioException e) {
-    if (e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.connectionTimeout) {
-      return const NetworkFailure();
-    }
-    final data = e.response?.data;
-    String message = 'Something went wrong.';
-    if (data is Map<String, dynamic>) {
-      message = data['message'] as String? ?? message;
-    }
-    return ServerFailure(
-        message: message, statusCode: e.response?.statusCode);
   }
 }
