@@ -1,0 +1,72 @@
+name: field_track
+description: "FieldTrack — Field employee app with geofence locations, offline todo sync, and notifications."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+  google_fonts: ^8.1.0
+
+  # State Management
+  flutter_bloc: ^9.1.1
+  equatable: ^2.0.7
+
+  # Dependency Injection
+  get_it: ^9.2.1
+
+  # Networking
+  dio: ^5.8.0+1
+
+  # Routing
+  go_router: ^17.3.0
+
+  # Local Storage
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  flutter_secure_storage: ^10.3.1
+
+  # Connectivity
+  connectivity_plus: ^7.2.0
+
+  # Location & Geofencing
+  geolocator: ^14.0.3
+
+  # Notifications
+  flutter_local_notifications: ^22.0.1
+
+  # Functional Programming
+  dartz: ^0.10.1
+
+  # Date Formatting
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Launcher Icons Generator
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/icons/
+    - assets/images/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#0a192f"
+  adaptive_icon_foreground: "assets/icons/app_icon.png"
